@@ -258,7 +258,7 @@ set_seed(42)
 
 ---
 
-## 💻 6. Example Code
+## 💻 5. Example Code
 
 While this repository emphasizes general PLDC concepts, a complete end-to-end reference script incorporating all steps above is provided in `simple.py`.
 
