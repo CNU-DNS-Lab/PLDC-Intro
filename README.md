@@ -190,6 +190,47 @@ model = tf.keras.Model(inputs, outputs)
 
 ##### Advanced CNN Blocks
 We will showcase a few blocks that can be used in CNN networks. They are built to be used in functional API. 
+
+- Depthwise Convolution
+    ```python
+    import tensorflow as tf
+    from tensorflow.keras import layers
+
+    depthwise_layer = layers.DepthwiseConv2D(
+        kernel_size=(3, 3),
+        strides=(1, 1),
+        padding='same',
+        activation='relu',
+        use_bias=False
+    )
+    ```
+
+- Pointwise Convolution
+    ```python
+    pointwise_layer = layers.Conv2D(
+        filters=64,
+        kernel_size=(1, 1),
+        strides=(1, 1),
+        padding='same',
+        activation='relu',
+        use_bias=False
+    )
+    ```
+
+- Depthwise Seperable Convolution
+    ```python
+    seperable_layer = layers.SeparableConv2D(
+        filters=64,
+        kernel_size=(3, 3),
+        strides=(1, 1),
+        padding='same',
+        dilation_rate=(1, 1),
+        depth_multiplier=1,
+        activation='relu',
+        use_bias=False
+    )
+    ```
+
 - Squeeze and Excitation 
     ```python 
     def SqueezeExcitationBlock(inputs, reduction_ratio=4):
