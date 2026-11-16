@@ -22,7 +22,7 @@ Data selection and curation are critical factors in building reliable PLDC model
 
 ### Best Practices & Practical Implementation
 
-* **Sample Size:** Ideally, if possilbe, try to aim for at least 1,000 images per class for strong model generalization (300 per class minimum).
+* **Sample Size:** Ideally, if possible, try to aim for at least 1,000 images per class for strong model generalization (300 per class minimum).
 * **Resolution:** Standard input resolution of $224 \times 224 \times 3$ is widely adopted, enabling seamless integration with pre-trained vision backbones train on ImageNet.
 * **Class Imbalance:** Apply class-weighting during loss calculation, downsampling, or data augmentation (flips, rotations, color shifts) to prevent majority-class bias. [Augmentation](https://github.com/CNU-DNS-Lab/PotatoAugmentation) can be found here.
 * **Bias Avoidance:** Ensure image acquisition conditions (e.g., background color, lighting, hands holding leaves) are uniformly distributed across classes to prevent the network from learning background shortcuts.
@@ -35,6 +35,7 @@ import tensorflow as tf
 
 image_size = (224,224)
 batch_size = 32
+num_classes = 10
 data_directory = "./data/dataset/train"
 test_directory = "./data/dataset/test"
 ```
@@ -126,7 +127,7 @@ test_directory = "./data/dataset/test"
 * **Residual Connections (RC):** Adds input feature maps directly to layer outputs, stabilizing gradient flow across deeper networks.
 * **Attention Mechanisms:**
   * **Squeeze-and-Excitation (SE):** Dynamically recalibrates channel-wise feature map importances.
-  * **CBAM (Convolutional Block Attention Module):** Sequentially applies spatial and channel attention to focus on critical regions of the image. Channel and Spatial attention can also be used indpendantly.
+  * **CBAM (Convolutional Block Attention Module):** Sequentially applies spatial and channel attention to focus on critical regions of the image. Channel and Spatial attention can also be used independently.
 * **etc.**
 
 #### Practical Snippet: Basic CNN examples using TensorFlow
@@ -277,8 +278,7 @@ history = model.fit(
     train_ds,
     validation_data=val_ds,
     epochs=25,
-    callbacks=callbacks,
-    class_weight=class_weight_dict
+    callbacks=callbacks
 )
 ```
 
@@ -318,7 +318,7 @@ set_seed(42)
 ## ⚙️ 5. Metrics and Plots
 Here we will showcase some code for metric usage and ways to visualize reults.
 
-To include metrics such as F1-score, recall and precision, which are not included by default, once can use the `tf.keras.metrics` versions.
+To include metrics such as F1-score, recall and precision, which are not included by default, one can use the `tf.keras.metrics` versions.
 ```python
 f1 = tf.keras.metrics.F1Score(name="f1_score", average="macro")
 recall = tf.keras.metrics.Recall(name="recall")
@@ -379,7 +379,7 @@ While this repository emphasizes general PLDC concepts, a complete end-to-end re
 
 ### Repository Structure
 To run the experiments set up your directory as follows:
-- Dataset can be found [here](doi.org/10.17632/9twjtv92vk.1). Changes made to the dataset can be found in paper.
+- Dataset can be found [here](https://doi.org/10.17632/9twjtv92vk.1). Changes made to the dataset can be found in paper.
 
 
 ```text
