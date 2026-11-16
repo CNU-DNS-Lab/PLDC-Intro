@@ -41,71 +41,71 @@ test_directory = "./data/dataset/test"
 
 - Load training and validation data from same directory with split.
 
-```python
-# 1. Load datasets from directory structure
-# Loads training portion of dataset
-train_ds = tf.keras.preprocessing.image_dataset_from_directory(
-    data_directory,
-    label_mode='categorical', 
-    validation_split=0.2,
-    subset="training",
-    seed=1337,
-    color_mode="rgb",
-    image_size=image_size,
-    batch_size=batch_size,
-)
+    ```python
+    # 1. Load datasets from directory structure
+    # Loads training portion of dataset
+    train_ds = tf.keras.preprocessing.image_dataset_from_directory(
+        data_directory,
+        label_mode='categorical', 
+        validation_split=0.2,
+        subset="training",
+        seed=1337,
+        color_mode="rgb",
+        image_size=image_size,
+        batch_size=batch_size,
+    )
 
-# Loads validation portion of dataset
-val_ds = tf.keras.preprocessing.image_dataset_from_directory(
-    data_directory,
-    validation_split=0.2,
-    subset="validation",
-    label_mode='categorical',
-    seed=1337,
-    color_mode="rgb",
-    image_size=image_size,
-    batch_size=batch_size,
-)
+    # Loads validation portion of dataset
+    val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+        data_directory,
+        validation_split=0.2,
+        subset="validation",
+        label_mode='categorical',
+        seed=1337,
+        color_mode="rgb",
+        image_size=image_size,
+        batch_size=batch_size,
+    )
 
-```
+    ```
 
 - Load train, validation, and test data. Test data is in separate directory.
 
-```python
-# Loads training portion of dataset
-train_ds = tf.keras.preprocessing.image_dataset_from_directory(
-    data_directory,
-    label_mode='categorical', 
-    validation_split=0.2,
-    subset="training",
-    seed=1337,
-    color_mode="rgb",
-    image_size=image_size,
-    batch_size=batch_size,
-)
+    ```python
+    # Loads training portion of dataset
+    train_ds = tf.keras.preprocessing.image_dataset_from_directory(
+        data_directory,
+        label_mode='categorical', 
+        validation_split=0.2,
+        subset="training",
+        seed=1337,
+        color_mode="rgb",
+        image_size=image_size,
+        batch_size=batch_size,
+    )
 
-# Loads validation portion of dataset
-val_ds = tf.keras.preprocessing.image_dataset_from_directory(
-    data_directory,
-    validation_split=0.2,
-    subset="validation",
-    label_mode='categorical',
-    seed=1337,
-    color_mode="rgb",
-    image_size=image_size,
-    batch_size=batch_size,
-)
+    # Loads validation portion of dataset
+    val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+        data_directory,
+        validation_split=0.2,
+        subset="validation",
+        label_mode='categorical',
+        seed=1337,
+        color_mode="rgb",
+        image_size=image_size,
+        batch_size=batch_size,
+    )
 
-# Loads training portion of dataset
-test_ds = tf.keras.preprocessing.image_dataset_from_directory(
-    test_directory,
-    label_mode='categorical', 
-    seed=1337,
-    color_mode="rgb",
-    image_size=image_size,
-    batch_size=batch_size,
-)
-```
+    # Loads training portion of dataset
+    test_ds = tf.keras.preprocessing.image_dataset_from_directory(
+        test_directory,
+        label_mode='categorical', 
+        seed=1337,
+        color_mode="rgb",
+        image_size=image_size,
+        batch_size=batch_size,
+    )
+    ```
 
 ---
 
@@ -187,6 +187,63 @@ outputs = layers.Dense(num_classes, activation="softmax")(x)
 model = tf.keras.Model(inputs, outputs)
 ```
 
+##### Advanced CNN Blocks
+We will showcase a few blocks that can be used in CNN networks. They are built to be used in functional API. 
+- Squeeze and Excitation 
+    ```python 
+    def SqueezeExcitationBlock(inputs, reduction_ratio=4):
+        channels = inputs.shape[-1]
+        se = layers.GlobalAveragePooling2D(keepdims=True)(inputs)
+
+        reduced_filters = max(1, channels // reduction_ratio)
+
+        dense1 = layers.Dense(reduced_filters, activation='relu', use_bias=False)
+        dense2 = layers.Dense(channels, activation='sigmoid', use_bias=False)
+
+        se = dense1(se) 
+        se = dense2(se)
+
+        return layers.Multiply()([inputs, se]) 
+    ```
+- Channel Attention
+    ```python
+    def ChannelAttentionBlock(inputs, reduction_ratio=8):    
+        avg_pool = layers.GlobalAveragePooling2D()(inputs)
+        max_pool = layers.GlobalMaxPooling2D()(inputs)
+        
+        fc1 = layers.Dense(inputs.shape[-1] // reduction_ratio, activation='relu', use_bias=False)
+        fc2 = layers.Dense(inputs.shape[-1], use_bias=False)
+        
+        avg_out = fc2(fc1(avg_pool))
+        max_out = fc2(fc1(max_pool))
+        
+        channel_attention_output = avg_out + max_out
+        channel_attention_output = layers.Activation('sigmoid')(channel_attention_output)
+        
+        return layers.Multiply()([inputs, channel_attention_output])
+    ```
+- Spatial Attention
+    ```python
+    def SpatialAttentionBlock(inputs, kernel_size=7):
+        bn_axis = 3 if backend.image_data_format() == "channels_last" else 1
+
+        avg_out = tf.reduce_mean(inputs, axis=bn_axis, keepdims=True)
+        max_out = tf.reduce_max(inputs, axis=bn_axis, keepdims=True)
+        
+        concat = layers.Concatenate(axis=bn_axis)([avg_out, max_out])
+        spatial_attention_map = layers.Conv2D(1, kernel_size, padding='same', use_bias=False)(concat)
+        spatial_attention_map = layers.BatchNormalization(axis=bn_axis)(spatial_attention_map)
+        spatial_attention_map = layers.Activation('sigmoid')(spatial_attention_map)
+
+        return layers.Multiply()([inputs, spatial_attention_map])
+    ```
+- CBAM
+    ```python
+    def CBAMBlock(inputs, reduction_ratio=8, kernel_size=7):
+        x = ChannelAttentionBlock(inputs, reduction_ratio)
+        x = SpatialAttentionBlock(x)
+    return x
+    ```
 ---
 
 ## ⚙️ 4. Training Strategies & Best Practices
@@ -258,7 +315,65 @@ set_seed(42)
 
 ---
 
-## 💻 5. Example Code
+## ⚙️ 5. Metrics and Plots
+Here we will showcase some code for metric usage and ways to visualize reults.
+
+To include metrics such as F1-score, recall and precision, which are not included by default, once can use the `tf.keras.metrics` versions.
+```python
+f1 = tf.keras.metrics.F1Score(name="f1_score", average="macro")
+recall = tf.keras.metrics.Recall(name="recall")
+precision = tf.keras.metrics.Precision(name="precision")
+
+```
+
+To visualize results most commonly used are `matplotlib` and `seaborn`.
+
+```python
+import matplotlib.pyplot as plt
+import seaborn as sns
+```
+
+*scikit-learn* is often used to generate metrics such as confusion matrices, AUC, and more.
+
+```python
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import roc_auc_score, roc_curve, auc
+
+```
+
+Plotting is often carried out using `matplotlib`, as mentioned above, here an example accuracy and loss over time plot is shown, `history` is obtained from `model.fit`:
+
+```python
+acc = history.history['accuracy']
+val_acc = history.history['val_accuracy'] 
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+epochs_range = range(len(acc)) 
+
+plt.figure(figsize=(12, 5))
+
+plt.subplot(1, 2, 1)
+plt.plot(epochs_range, acc, label='Training Accuracy')
+plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+plt.legend(loc='lower right')
+plt.title('Training and Validation Accuracy')
+
+plt.subplot(1, 2, 2)
+plt.plot(epochs_range, loss, label='Training Loss')
+plt.plot(epochs_range, val_loss, label='Validation Loss')
+plt.legend(loc='upper right')
+plt.title('Training and Validation Loss')
+
+plt.savefig(os.path.join(results_directory, "training_plot.png"))
+plt.show()
+
+print(f"Training complete! Results and plots saved in: {results_directory}")
+```
+
+---
+
+
+## 💻 6. Example Experiment
 
 While this repository emphasizes general PLDC concepts, a complete end-to-end reference script incorporating all steps above is provided in `simple.py`.
 
@@ -271,7 +386,7 @@ To run the experiments set up your directory as follows:
 PLDC-Intro/
 ├── simple.py              # Reference implementation (MobileNetV3 + SE Block + Class Weights)
 ├── README.md              # Main documentation
-└── data/            # Example dataset directory structure
+└── data/                  # Example dataset directory structure
     └── sugar/
         ├── train/         # Training images (grouped by class folders)
         └── test/          # Testing images (grouped by class folders)
